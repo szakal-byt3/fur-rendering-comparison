@@ -46,12 +46,14 @@ UStaticMeshComponent* UShellFurComponent::GetOwnerMesh()
 }
 
 
-// Unregisters existing shells
+// Removes existing shells
 void UShellFurComponent::ClearShells()
 {
+	AActor* Owner = GetOwner();
 	for (UStaticMeshComponent* Shell : ShellLayers)
 	{
 		Shell->DestroyComponent();
+		Owner->RemoveInstanceComponent(Shell);
 	}
 }
 
@@ -60,15 +62,34 @@ void UShellFurComponent::ClearShells()
 void UShellFurComponent::BuildShells()
 {
 	ClearShells();
+	AActor* Owner = GetOwner();
 	UStaticMeshComponent* OwnerMesh = GetOwnerMesh();
 
 
 	for (int32 i = 0; i < ShellCount; i++)
 	{
 		FName Name = *FString::Printf(TEXT("Shell_%d"), i);
-		TObjectPtr<UStaticMeshComponent> Shell = NewObject<UStaticMeshComponent>(OwnerMesh, Name);
+		TObjectPtr<UStaticMeshComponent> Shell = NewObject<UStaticMeshComponent>(Owner, Name);
 		
+		// Attaches shell to the owner mesh and sets up properties
 		Shell->SetupAttachment(OwnerMesh);
-		Shell->SetStaticMesh()
+		Shell->SetStaticMesh(OwnerMesh->GetStaticMesh());
+		Shell->SetCastShadow(false);
+		Shell->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Shell->SetMaterial(0, ShellMaterial);
+
+		Owner->AddInstanceComponent(Shell);
+		Shell->RegisterComponent();
+
+		// Sends parameters to the material to control shell offset and UV scaling
+		if (UMaterialInstanceDynamic* MID = Shell->CreateAndSetMaterialInstanceDynamic(0))
+		{
+			MID->SetScalarParameterValue(TEXT("ShellIndex"), static_cast<float>(i));
+			MID->SetScalarParameterValue(TEXT("ShellCount"), static_cast<float>(ShellCount));
+			MID->SetScalarParameterValue(TEXT("ShellOffset"), (i + 1) * ShellStep);
+			MID->SetScalarParameterValue(TEXT("UVScale"), UVScale);
+		}
+		
+		ShellLayers.Add(Shell);
 	}
 }

@@ -33,7 +33,16 @@ protected:
 	TObjectPtr<UStaticMeshComponent> TargetMesh = nullptr;
 
 	UPROPERTY(EditAnywhere, Category = "Shells")
-	int ShellCount = 8;
+	int32 ShellCount = 8;
+	
+	UPROPERTY(EditAnywhere, Category="Shell Fur")
+	float ShellStep = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category="Shell Fur")
+	TObjectPtr<UMaterialInterface> ShellMaterial = nullptr;
+
+	UPROPERTY(EditAnywhere, Category="Shell Fur")
+	float UVScale = 3.0f;
 
 public:	
 	// Called every frame
