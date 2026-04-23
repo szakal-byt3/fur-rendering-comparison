@@ -1,0 +1,196 @@
+\documentclass{article}
+
+% preamble.tex source: Templates for CCSC Conferences (paper_template)
+% https://github.com/ccsc-journal/ccsc-editor/tree/master
+\input{preamble}
+
+\addbibresource{paper.bib}
+
+%path to figures - \usepackage{graphicx} is included in preamble.tex
+\graphicspath{{figures/}}
+
+\title{CSCI 693 Paper Template\footnote{CSCI 693 Research Methods in Computer Science, Spring 2026}}
+
+\author{
+  Student Name\affmark[1], Shelley Wong\affmark[2]\\
+  \affmark[1]Computer Information Systems\\
+  \affmark[2]Computer Science Department\\
+  California State University, Chico\\
+  Chico, CA 95929\\
+  \email{\{student,swong26\}@csuchico.edu}
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The Abstract should offer a succinct summary of the entire paper, usually 150–300 words. Key contents: Research problem, methods, main findings, and major conclusions.
+\end{abstract}
+
+\section{Introduction}
+Rendering realistic fur has been an ongoing challenge in the field of computer graphics. By its nature, fur is comprised of numerous individual hairs, usually too many to model manually. Additionally, the structure of the hair strand introduces unique lighting interactions. Rendering methods must consider how to recreate the effect of light on hair. Two broad approaches for rendering hair have become commonplace --- explicit rendering and implicit rendering\cite{andersen2016hybrid}. In explicit rendering, or strand-based rendering, geometry is procedurally created for each strand. This per-strand geometry is then used to inform lighting and motion. In contrast, implicit rendering creates the illusion of fur via volume densities and approximates lighting across.
+
+It is widely accepted that explicit rendering techniques require greater computational resources compared to implicit. However, there is a lack of literature that quantifies the performance and scalability differences between these approaches. For real-time rendering applications, like video games, tradeoffs between performance and visual fidelity are important considerations. Depending on a project's goals and constraints, different techniques may be better suited to it than others. Resource limitations, number of furry models, the prominence of furry characters, and desired fur appearance can all demand different levels of efficiency and quality.
+
+This paper evaluates the performance and scalability of common real-time fur rendering techniques within Unreal Engine. Specifically, it compares explicit strand-based rendering with implicit shell-based rendering. By analyzing how these methods respond to increasing rendering workloads, this work aims to provide practical guidance for selecting appropriate techniques under varying performance constraints.
+
+\subsection{Context and Background}
+Present general information on the topic. Highlight the broader context and relevance of the research.
+
+\subsection{Problem Statement and Research Question}
+Clearly state the gap in knowledge or the problem your study addresses. Articulate the main research question(s) or hypothesis/hypotheses.
+
+\subsection{Significance of the Study}
+Explain why your research is necessary or valuable. Discuss theoretical, practical, or policy implications.
+
+\subsection{Scope and Organization}
+Briefly outline what the reader can expect in the upcoming sections.
+
+
+\section{Literature Review}
+
+In 1989, Kajiya and Kay introduced a solution for realistic fur rendering\cite{kajiya}. They proposed the use of three-dimensional texture maps, which they called texels, to render fur volumetrically rather than as explicit strands. Alongside this, they introduced an anisotropic lighting model that treated hair and fur fibers as small cylinders, allowing for greater realism in lighting. Lengyel et al. demonstrated a new volumetric fur rendering technique which allowed for real-time rendering over arbitrary topology\cite{lengyel}. Their solution involved creating shells, stacks of the surface mesh extruded along the normals, layered concentrically around the mesh. A semi-transparent, two-dimensional texture for the fur was then applied to these layers, creating the appearance of voluminous fur. To hide visual imperfections left by the shells, Lengyel et al. rendered fins around the silhouette of the mesh. Lengyel et al. adapted the Kajiya-Kay lighting to work with their approach\cite{lengyel}.
+
+The Kajiya-Kay lighting model has served as the base for later hair and fur lighting models. Marschner et al. built off Kajiya-Kay to develop a lighting model which simulates light scattering in human hair fibers\cite{marschner}. While this method captured additional lighting information, such as secondary highlights, the added complexity made it more computationally expensive than the Kajiya-Kay model. A year later, Scheuermann introduced another lighting method based on Kajiya-Kay that approximated the additional lighting captured in the work of Marschner et al\cite{scheuermann}, trading accuracy for lower computational cost. Additional work has been done to improve the realism of the Marschner lighting model and the efficiency of those evolutions\cite{chiang, deon}.
+
+Outside of lighting, fur appearance also needs to account for variation between fur types, such as the difference between the undercoat and guard hairs\cite{andersen2016hybrid}. The density of the undercoat makes rendering explicit geometry generally infeasible\cite{chiang}. In addition to this, the physical structure of an animal's fur can vary between species\cite{chiang}. Anderson et al. found that combining volumetric and strand-based fur provided a solution for this problem. Volumetric fur had a good visual resemblance to the undercoat while the strand-based fur better matched the appearance of guard hairs\cite{andersen2016hybrid}. There are also other tricks to handle the undercoat outside of volumetric rendering. For the strand-based shown in the 2016 animated film \textit{Zootopia}, researchers at Walt Disney Animation Studios faked the undercoat using shading\cite{chiang}. To address species-dependent fur appearance in the film, they varied azimuthal roughness on a per-species basis.
+
+Other research has sought to improve the efficiency of strand-based hair and fur rendering through a variety of techniques. Bhokare et al. presented a method to generate hair strand geometry on-the-fly using the GPU and hair meshes\cite{bhokare}. Their research showed considerable performance improvement, though they note that their approach cannot handle arbitrary hairstyles. Neural nets have also been employed to this end, both to control strand LOD and to generate strand geometry\cite{wei,zhu}.
+
+Existing work largely focuses on improving visual realism or computational efficiency, with greater realism often accompanied with greater expense and vice versa. Comparatively little research provides direct, quantitative data on how the different techniques scale under increasing pressure, which is a common concern in real-time environments. This lack of comparative data limits the ability to determine which techniques are best suited to specific use cases, beyond the general understanding that strand-based methods are more computationally expensive.
+
+\section{Methodology (or Materials and Methods)}
+
+\subsection{Research Design}
+Describe whether the study is experimental, correlational, qualitative, mixed methods, etc.
+
+Participants and Setting: Detail demographic information (if relevant). Specify the sampling method (probability, purposive, convenience, etc.).
+
+Data Collection Methods: Explain instruments (e.g., surveys, interview protocols, laboratory equipment) and procedures. Justify your choices and address reliability and validity.
+
+Data Analysis Techniques: Describe statistical tests, qualitative coding strategies, or computational models used. Justify why these analyses are appropriate for your data.
+
+\subsection{Ethical Considerations}
+Note institutional review board (IRB) approval if required. Describe how you ensured confidentiality, consent, and data protection.
+
+\subsection{Code Listings}
+Short, relevant code snippets or pseudocode can be included inline if they are important for enhancing understanding, provided they are well-formatted and clearly labeled. Commands from \texttt{listings} package allow you to display code easily with customizable coloring and styling rules. Here is an example.
+
+\begin{lstlisting}[language=Python,  caption=Python example]
+x = 42
+epsilon = 0.01
+step = epsilon**2
+num_guesses = 0
+ans = 0.0
+while abs(ans**2-x) > epsilon and ans < x:
+    ans = ans + step
+    num_guesses += 1
+if abs(ans**2-x) <= epsilon:
+    print(str(ans) +
+    ' is close to the square root of ' +
+    str(x))
+else:
+    print('Failed to find square root of ' + str(x))
+print("The number of guesses is " + str(num_guesses))
+\end{lstlisting}
+
+\section{Results (or Findings)}
+
+\subsection{Presentation of Data}
+Organize findings logically (chronologically, thematically, or by research questions). Use tables, figures, charts, or direct quotes (for qualitative research) as needed. Table \ref{table:nonlin} is an example of a simple table.
+
+\begin{table}[ht]
+\caption{Nonlinear Model Results} % title of Table
+\label{table:nonlin} % is used to refer this table in the text
+\centering % used for centering table
+\begin{tabular}{c c c c} % centered columns (4 columns)
+\hline\hline %inserts double horizontal lines
+Case & Method\#1 & Method\#2 & Method\#3 \\ [0.5ex] % inserts table
+%heading
+\hline % inserts single horizontal line
+1 & 50 & 837 & 970 \\ % inserting body of the table
+2 & 47 & 877 & 230 \\
+3 & 31 & 25 & 415 \\
+4 & 35 & 144 & 2356 \\
+5 & 45 & 300 & 556 \\ [1ex] % [1ex] adds vertical space
+\hline %inserts single line
+\end{tabular}
+\end{table}
+
+\subsection{Figures}
+
+The ``\verb|figure|'' environment should be used for figures. One or
+more images can be placed within a figure. If your figure contains
+third-party material, you must clearly identify it as such, as shown
+in the example Figure \ref{fig:theRR} below.
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{theRRimage}
+  \caption{A screenshot of the music video for "Never gonna give you up", performed by Rick Astley. Screenshot via Wikipedia. (\protect\url{https://en.wikipedia.org/wiki/Rickrolling}).}
+  \label{fig:theRR}
+\end{figure}
+
+Your figures should contain a caption which describes the figure to
+the reader. Figure captions are placed {\itshape below} the figure.
+
+Every figure should also have a figure description unless it is purely
+decorative. These descriptions convey what’s in the image to someone
+who cannot see it. They are also used by search engine crawlers for
+indexing images, and when images cannot be loaded.
+
+A figure description must be unformatted plain text less than 2000
+characters long (including spaces).  {\bfseries Figure descriptions
+  should not repeat the figure caption – their purpose is to capture
+  important information that is not already provided in the caption or
+  the main text of the paper.} For figures that convey important and
+complex new information, a short text description may not be
+adequate. More complex alternative descriptions can be placed in an
+appendix and referenced in a short figure description. For example,
+provide a data table capturing the information in a bar chart, or a
+structured list representing a graph.  For additional information
+regarding how best to write figure descriptions and why doing this is
+so important, please see
+\url{https://www.acm.org/publications/taps/describing-figures/}.
+
+\subsection{Key Observations}
+Summarize significant findings without interpreting them in depth—save interpretation for the Discussion section (unless Results and Discussion are combined).
+
+\subsection{Statistical or Thematic Findings}
+Report p-values, effect sizes, confidence intervals, or themes, depending on methodology.
+
+\section{Discussion}
+
+\subsection{Interpretation of Results}
+Connect your findings to your original research questions. Explain how the results support or challenge existing literature/theories.
+
+\subsection{Implications}
+Discuss practical, theoretical, or policy implications. Show how your work advances knowledge in the field.
+
+\subsection{Limitations}
+Acknowledge constraints such as sample size, method-specific limitations, or biases. Suggest how these limitations affect interpretation and generalizability.
+
+\subsection{Suggestions for Future Research}
+Propose follow-up studies or alternative methods that address unanswered questions.
+
+\section{Conclusion}
+
+\begin{itemize}[noitemsep]
+  \item Summary of Main Findings: Recap key points succinctly.
+  \item Research Contribution: Reiterate how the study fills the identified gap.
+  \item Closing Thoughts: Provide a final reflection on the significance and potential impact of your research.
+\end{itemize}
+
+We're no strangers to love. You know the rules and so do I. A full commitment's what I'm thinking of. You wouldn't get this from any other guy. I just wanna tell you how I'm feeling. Gotta make you understand.
+
+Never gonna give you up. Never gonna let you down. Never gonna run around and desert you. Never gonna make you cry. Never gonna say goodbye. Never gonna tell a lie and hurt you.
+
+We've known each other for so long. Your heart's been aching, but you're too shy to say it. Inside, we both know what's been going on. We know the game and we're gonna play it. And if you ask me how I'm feeling. Don't tell me you're too blind to see.
+
+Never gonna give you up. Never gonna let you down. Never gonna run around and desert you. Never gonna make you cry. Never gonna say goodbye. Never gonna tell a lie and hurt you.
+
+\medskip
+
+\printbibliography
+
+\end{document}
+
