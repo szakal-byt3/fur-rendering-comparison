@@ -9,15 +9,15 @@
 %path to figures - \usepackage{graphicx} is included in preamble.tex
 \graphicspath{{figures/}}
 
-\title{CSCI 693 Paper Template\footnote{CSCI 693 Research Methods in Computer Science, Spring 2026}}
+\title{Scalability Comparison of Shell Fur and Strand Fur in Unreal Engine\footnote{CSCI 693 Research Methods in Computer Science, Spring 2026}}
 
 \author{
-  Student Name\affmark[1], Shelley Wong\affmark[2]\\
-  \affmark[1]Computer Information Systems\\
+  Luke Sakal\affmark[1], Shelley Wong\affmark[2]\\
+  \affmark[1]Computer Science\\
   \affmark[2]Computer Science Department\\
   California State University, Chico\\
   Chico, CA 95929\\
-  \email{\{student,swong26\}@csuchico.edu}
+  \email{\{lesakal,swong26\}@csuchico.edu}
 }
 
 \begin{document}
@@ -59,39 +59,68 @@ Other research has sought to improve the efficiency of strand-based hair and fur
 
 Existing work largely focuses on improving visual realism or computational efficiency, with greater realism often accompanied with greater expense and vice versa. Comparatively little research provides direct, quantitative data on how the different techniques scale under increasing pressure, which is a common concern in real-time environments. This lack of comparative data limits the ability to determine which techniques are best suited to specific use cases, beyond the general understanding that strand-based methods are more computationally expensive.
 
-\section{Methodology (or Materials and Methods)}
+\section{Methodology}
 
-\subsection{Research Design}
-Describe whether the study is experimental, correlational, qualitative, mixed methods, etc.
+\subsection{Implementation Details}
+We created shell fur and strand fur using Unreal Engine 5.7.4. Shell fur was accomplished using a custom Actor Component class and a custom Material. The Actor Componenent class handles the duplication of the base mesh and passes relevant parameters to the Material. The Material performs extrusion along the normals, calculates the density of the fur using a noise-based texture, and then applies the modified Kajiya-Kay lighting described by Lengyel et al. with a slight adjustment of our own. The lighting described by Lengyel et al. can be written as:
 
-Participants and Setting: Detail demographic information (if relevant). Specify the sampling method (probability, purposive, convenience, etc.).
+\begin{equation}
+\begin{aligned}
+\mathrm{HairLighting}(u, v)
+&= K_a + K_d \left(1 - u^2\right)^{P_d/2}
+  + K_s \left(1 - v^2\right)^{P_s/2}, \\
+u &= T \cdot L, \\
+v &= T \cdot H.
+\end{aligned}
+\end{equation}
 
-Data Collection Methods: Explain instruments (e.g., surveys, interview protocols, laboratory equipment) and procedures. Justify your choices and address reliability and validity.
+Our adjustment scales the computed lighting by an additional factor of $0.1(N \cdot L)$, where $N$ and $L$ denote the surface normal and light direction, respectively. Without this change, the material failed to attenuate lighting in occluded areas. Using the full value of $(N \cdot L)$ created overly harsh shadows.
 
-Data Analysis Techniques: Describe statistical tests, qualitative coding strategies, or computational models used. Justify why these analyses are appropriate for your data.
+It should be noted that our shell fur Material is custom lit. Intead of going through Unreal's shading pipeline, it uses a custom Material node to calculate the emissive color using the aforementioned lighting equation. While it is possible to use default Unreal Engine lighting instead, we found that it lacked the band-like highlights that the custom lighting provides. 
 
-\subsection{Ethical Considerations}
-Note institutional review board (IRB) approval if required. Describe how you ensured confidentiality, consent, and data protection.
+Creation of strand fur was handled via Unreal Engine's Groom system, which uses Groom assets to render hair strands. We created a variety of Groom assets using Blender, an open-source 3D software. The same noise-based texture used for shell fur density was used as a density mask during the creation of the Groom assets. We controlled the number of curves in Blender to create assets with a varying quantity of strands. Unreal Engine handles lighting here, unlike in the shell fur implementation. (I should describe Unreal's lighting model -- think I saved a white paper on the Groom system somewhere)
+
+\subsection{Experiment Design}
+We created different levels to set up meshes, lighting, and rendering information. Unreal blueprints define repeatable scene behavior, including camera settings, motion, duration of the run, and the starting or stopping the CSV Profiler. The same level and blueprint where used across multiple runs. 
+
+To avoid overhead from the Unreal Editor, we packed the project into an executable file which would run the level specified prior to packaging. This executable was run on a Windows 11 system with an AMD Ryzen 7735HS CPU, 32 gigabytes of RAM, and a Nvidia GeForce RTX 4070 GPU.
+
+We tested several different scenes, varying the complexity level of a single variable to determine effects. 
 
 \subsection{Code Listings}
-Short, relevant code snippets or pseudocode can be included inline if they are important for enhancing understanding, provided they are well-formatted and clearly labeled. Commands from \texttt{listings} package allow you to display code easily with customizable coloring and styling rules. Here is an example.
 
-\begin{lstlisting}[language=Python,  caption=Python example]
-x = 42
-epsilon = 0.01
-step = epsilon**2
-num_guesses = 0
-ans = 0.0
-while abs(ans**2-x) > epsilon and ans < x:
-    ans = ans + step
-    num_guesses += 1
-if abs(ans**2-x) <= epsilon:
-    print(str(ans) +
-    ' is close to the square root of ' +
-    str(x))
-else:
-    print('Failed to find square root of ' + str(x))
-print("The number of guesses is " + str(num_guesses))
+\begin{lstlisting}[caption=Shell Fur Material Lighting]
+float3 camDir = normalize(camPos - worldPos);
+
+float3 T = normalize(hairDir);   // hair dir at each vertex
+float3 L = normalize(-lightDir); // light dir
+float3 V = normalize(camDir);    // eye dir
+
+float3 H = normalize(L + V);
+
+float u = dot(T, L);
+float v = dot(T, H);
+
+float oneMinusU2 = saturate(1.0 - u * u);
+float oneMinusV2 = saturate(1.0 - v * v);
+
+float diffuseTerm = pow(oneMinusU2, diffusePow * 0.5);
+float specTerm = pow(oneMinusV2, specPow * 0.5);
+
+float shadowScale = pow(saturate(shellDepth), 1.1);
+float selfShadow = lerp(rootDarken, 1.0, shadowScale);
+
+float3 ambientColor = albedo;
+float3 diffuseColor = albedo * diffuseStrength;
+
+float NdotL = saturate(dot(T, normalize(lightDir)));
+
+float3 hairLighting =
+    ambientColor * selfShadow   +
+    diffuseColor * diffuseTerm  * selfShadow +
+    specColor    * specStrength * specTerm   * selfShadow;
+
+return hairLighting * (NdotL + 0.1);
 \end{lstlisting}
 
 \section{Results (or Findings)}
@@ -119,15 +148,57 @@ Case & Method\#1 & Method\#2 & Method\#3 \\ [0.5ex] % inserts table
 
 \subsection{Figures}
 
-The ``\verb|figure|'' environment should be used for figures. One or
-more images can be placed within a figure. If your figure contains
-third-party material, you must clearly identify it as such, as shown
-in the example Figure \ref{fig:theRR} below.
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=\linewidth]{theRRimage}
-  \caption{A screenshot of the music video for "Never gonna give you up", performed by Rick Astley. Screenshot via Wikipedia. (\protect\url{https://en.wikipedia.org/wiki/Rickrolling}).}
-  \label{fig:theRR}
+\begin{figure}[htbp]
+\centering
+\begin{subfigure}{0.45\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Strand/FrameTime_Scaling.png}
+    \caption{Caption 1}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.45\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Strand/GPUTime_Scaling.png}
+    \caption{Caption 2}
+\end{subfigure}
+
+\vspace{0.5em}
+
+\begin{subfigure}{0.45\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Strand/BasePass_Scaling.png}
+    \caption{Caption 3}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.45\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Strand/Shadows_Scaling.png}
+    \caption{Caption 4}
+\end{subfigure}
+
+\vspace{0.5em}
+
+\begin{subfigure}{0.45\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Strand/RenderThreadTime_Scaling.png}
+    \caption{Caption 5}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.45\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Strand/DrawCalls_Scaling.png}
+    \caption{Caption 6}
+\end{subfigure}
+
+\vspace{0.5em}
+
+\begin{subfigure}{0.45\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Strand/FPS_Scaling.png}
+    \caption{Caption 7}
+\end{subfigure}
+
+\caption{Strand results}
 \end{figure}
 
 Your figures should contain a caption which describes the figure to
@@ -167,26 +238,13 @@ Connect your findings to your original research questions. Explain how the resul
 Discuss practical, theoretical, or policy implications. Show how your work advances knowledge in the field.
 
 \subsection{Limitations}
-Acknowledge constraints such as sample size, method-specific limitations, or biases. Suggest how these limitations affect interpretation and generalizability.
+Note the lack of optimization in Unreal custom material nodes, the fact that the shell fur material is separate to Unreal's lighting pipeline, lack of animation, that this is specific to Unreal 
 
 \subsection{Suggestions for Future Research}
-Propose follow-up studies or alternative methods that address unanswered questions.
+Talk about making an actual plugin, perhaps testing an Unreal lit shell fur implementation, testing hair cards.
 
 \section{Conclusion}
-
-\begin{itemize}[noitemsep]
-  \item Summary of Main Findings: Recap key points succinctly.
-  \item Research Contribution: Reiterate how the study fills the identified gap.
-  \item Closing Thoughts: Provide a final reflection on the significance and potential impact of your research.
-\end{itemize}
-
-We're no strangers to love. You know the rules and so do I. A full commitment's what I'm thinking of. You wouldn't get this from any other guy. I just wanna tell you how I'm feeling. Gotta make you understand.
-
-Never gonna give you up. Never gonna let you down. Never gonna run around and desert you. Never gonna make you cry. Never gonna say goodbye. Never gonna tell a lie and hurt you.
-
-We've known each other for so long. Your heart's been aching, but you're too shy to say it. Inside, we both know what's been going on. We know the game and we're gonna play it. And if you ask me how I'm feeling. Don't tell me you're too blind to see.
-
-Never gonna give you up. Never gonna let you down. Never gonna run around and desert you. Never gonna make you cry. Never gonna say goodbye. Never gonna tell a lie and hurt you.
+I need to do more testing for this.
 
 \medskip
 
