@@ -50,8 +50,11 @@ void UShellFurComponent::ClearShells()
 	AActor* Owner = GetOwner();
 	for (UStaticMeshComponent* Shell : ShellLayers)
 	{
-		Shell->DestroyComponent();
-		Owner->RemoveInstanceComponent(Shell);
+		if (Shell != nullptr)
+		{
+			Shell->DestroyComponent();
+			Owner->RemoveInstanceComponent(Shell);
+		}
 	}
 }
 
@@ -74,10 +77,10 @@ void UShellFurComponent::BuildShells()
 		Shell->SetStaticMesh(OwnerMesh->GetStaticMesh());
 		Shell->SetCastShadow(false);
 		Shell->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		UMaterialInterface* ShellMaterial = LoadObject<UMaterialInterface>(
-			nullptr,
-			TEXT("/Game/Materials/M_ShellFur.M_ShellFur")
-		);
+		if (ShellMaterial == nullptr)
+		{
+			ShellMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Materials/M_ShellFur.M_ShellFur"));
+		}
 		Shell->SetMaterial(0, ShellMaterial);
 
 		Owner->AddInstanceComponent(Shell);

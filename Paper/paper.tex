@@ -76,7 +76,7 @@ v &= T \cdot H.
 
 Our adjustment scales the computed lighting by an additional factor of $0.1(N \cdot L)$, where $N$ and $L$ denote the surface normal and light direction, respectively. Without this change, the material failed to attenuate lighting in occluded areas. Using the full value of $(N \cdot L)$ created overly harsh shadows.
 
-It should be noted that our shell fur Material is custom lit. Intead of going through Unreal's shading pipeline, it uses a custom Material node to calculate the emissive color using the aforementioned lighting equation. While it is possible to use default Unreal Engine lighting instead, we found that it lacked the band-like highlights that the custom lighting provides. 
+It should be noted that our shell fur Material is custom lit. Instead of going through Unreal's shading pipeline, it uses a custom Material node to calculate the emissive color using the aforementioned lighting equation. While it is possible to use default Unreal Engine lighting instead, we found that it lacked the band-like highlights that the custom lighting provides. 
 
 Creation of strand fur was handled via Unreal Engine's Groom system, which uses Groom assets to render hair strands. We created a variety of Groom assets using Blender, an open-source 3D software. The same noise-based texture used for shell fur density was used as a density mask during the creation of the Groom assets. We controlled the number of curves in Blender to create assets with a varying quantity of strands. Unreal Engine handles lighting here, unlike in the shell fur implementation. (I should describe Unreal's lighting model -- think I saved a white paper on the Groom system somewhere)
 

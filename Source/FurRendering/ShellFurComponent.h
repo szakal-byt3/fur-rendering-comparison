@@ -34,12 +34,15 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Shells")
 	int32 ShellCount = 8;
+
+	UPROPERTY(EditAnywhere, Category="Shell Fur")
+	UMaterialInterface* ShellMaterial = nullptr;
 	
 	UPROPERTY(EditAnywhere, Category="Shell Fur")
 	float ShellStep = 0.2f;
 
 	UPROPERTY(EditAnywhere, Category="Shell Fur")
-	float UVScale = 3.0f;
+	float UVScale = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category="Shell Fur")
 	float FurSpecularStrength = 0.2f;
@@ -51,10 +54,11 @@ protected:
 	float FurRootDarken = 0.25f;
 
 	UPROPERTY(EditAnywhere, Category="Shell Fur")
-	FLinearColor FurBaseColor = FLinearColor(0.06f, 0.03f, 0.025f, 1.0f);
+	FLinearColor FurBaseColor = FLinearColor(0.365f, 0.265f, 0.125f, 1.0f);
 	
 	UPROPERTY(EditAnywhere, Category = "Shell Fur")
-	FLinearColor FurSpecColor = FLinearColor(0.15f, 0.07f, 0.04f, 1.0f);
+	FLinearColor FurSpecColor = FLinearColor(0.62f, 0.45f, 0.35f, 1.0f);
+
 
 public:	
 	// Called every frame
