@@ -84,3 +84,12 @@ venv
 
 # Packaged files
 Packaged
+
+# Powershell scripts
+*.ps1
+
+# Raw results and backups
+SingleSphereRotatingCam
+MultiSphereFixedCam
+VariedResolution_RotatingCam
+*.zip

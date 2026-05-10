@@ -40,6 +40,13 @@ PLOT_COLUMNS = [
 def load_and_filter_csv(input_path: Path) -> pd.DataFrame:
     df = pd.read_csv(input_path, low_memory=False)
 
+    # Warn if RenderShadows missing (expected if light has raytracing enabled)
+    if "Exclusive/AllWorkers/RenderShadows" not in df.columns:
+        print(
+            f"WARNING: RenderShadows column not found; "
+            "expected if light is RT-enabled, check data otherwise"
+        )
+
     targeted_cols = [col for col in TARGET_COLUMNS if col in df.columns]
     filtered = df[targeted_cols].copy()
 
@@ -51,8 +58,11 @@ def load_and_filter_csv(input_path: Path) -> pd.DataFrame:
     if "FrameTime" in filtered.columns:
         filtered["FPS"] = 1000.0 / filtered["FrameTime"]
 
-    ordered = [col for col in COLUMN_ORDER if col in filtered.columns]
-    return filtered[ordered]
+    #ordered = [col for col in COLUMN_ORDER if col in filtered.columns]
+
+    # Reindex to enforce consistent column structure and avoid errors (missing = NaN)
+    ordered_df = filtered.reindex(columns=COLUMN_ORDER)
+    return ordered_df
 
 
 # Gets stats for a single series
@@ -146,6 +156,10 @@ def plot_data(run_means_df: pd.DataFrame, metric: str, ylabel: str, output_path:
     plot_df = run_means_df[["Run", metric]].copy()
     plot_df[metric] = pd.to_numeric(plot_df[metric], errors="coerce")
     plot_df = plot_df.dropna(subset=[metric])
+
+    if plot_df.empty:
+        print(f"Skipping plot for {metric}: no valid data")
+        return
 
     plt.figure(figsize=(10, 5))
     plt.plot(plot_df["Run"], plot_df[metric], marker="o")

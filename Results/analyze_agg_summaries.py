@@ -14,13 +14,26 @@ METRICS = [
     ("Exclusive/AllWorkers/RenderShadows", "Render Shadows (ms)", "Shadows_Scaling.png"),
 ]
 
+RESOLUTION_ORDER = [
+    "1280x720",
+    "1600x900",
+    "1920x1080",
+    "2560x1440",
+]
 
-# Expects files to be named like 8_Shells.csv or 16k_Strands.csv
-def parse_config_name(file_name: str) -> tuple[str, int]:
+
+# Expects files to be named like 8_Shells.csv, 16k_Strands.csv, or 5_Spheres_Shells.csv
+def parse_config_name(file_name: str) -> tuple[str, int | str, str | None]:
     file_name_split = file_name.split('_')
 
     complexity = file_name_split[0]
-    method = file_name_split[1]
+    method = file_name_split[-1]
+
+    # Optionally override xlabel via filename
+    # e.g. 5_Spheres_Shells will use Spheres as xlabel instead of shells
+    x_override = None
+    if (len(file_name_split) > 2):
+        x_override = file_name_split[1]
 
     if "Shell" in method:
         method = "Shell"
@@ -29,10 +42,14 @@ def parse_config_name(file_name: str) -> tuple[str, int]:
         complexity = complexity.rstrip('k')
     else:
         print("WARNING: Method unknown")
-    return method, int(complexity)
+
+    if x_override == "Resolution":
+        return method, complexity, x_override
+
+    return method, int(complexity), x_override
 
 
-def load_aggregate_summaries(target_dir: Path) -> pd.DataFrame:
+def load_aggregate_summaries(target_dir: Path) -> tuple[pd.DataFrame, str | None]:
     rows = []
 
     csv_files = sorted(target_dir.glob("*.csv"))
@@ -41,7 +58,7 @@ def load_aggregate_summaries(target_dir: Path) -> pd.DataFrame:
         return
 
     for file in csv_files:
-        method, complexity = parse_config_name(file.name)
+        method, complexity, x_override = parse_config_name(file.name)
         summary_df = pd.read_csv(file, low_memory=False)
 
         for index, row in summary_df.iterrows():
@@ -55,7 +72,7 @@ def load_aggregate_summaries(target_dir: Path) -> pd.DataFrame:
                 "RunCount": pd.to_numeric(row["RunCount"], errors="coerce"),
             })
 
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows), x_override
 
 
 def save_csv(df: pd.DataFrame, output_path: Path) -> None:
@@ -63,9 +80,14 @@ def save_csv(df: pd.DataFrame, output_path: Path) -> None:
     df.to_csv(output_path, index=False)
 
 
-def plot_data(df: pd.DataFrame, metric: str, ylabel: str, output_path: Path) -> None:
+def plot_data(df: pd.DataFrame, metric: str, ylabel: str, output_path: Path, x_override: str | None = None) -> None:
     metric_df = df[df["Metric"] == metric].copy()
-    metric_df = metric_df.sort_values("Complexity")
+
+    if x_override == "Resolution":
+        metric_df["ResolutionOrder"] = metric_df["Complexity"].apply(lambda value: RESOLUTION_ORDER.index(value))
+        metric_df = metric_df.sort_values("ResolutionOrder")
+    else:
+        metric_df = metric_df.sort_values("Complexity")
 
     plt.figure(figsize=(8, 5))
 
@@ -73,7 +95,11 @@ def plot_data(df: pd.DataFrame, metric: str, ylabel: str, output_path: Path) -> 
     methods = metric_df["Method"].dropna().unique()
     method = methods[0]
 
-    x = metric_df["Complexity"]
+    if x_override == "Resolution":
+        x = metric_df["ResolutionOrder"]
+    else:
+        x = metric_df["Complexity"]
+
     y = metric_df["MeanOfRuns"]
     yerr = metric_df["MarginOfError95"]
 
@@ -83,7 +109,12 @@ def plot_data(df: pd.DataFrame, metric: str, ylabel: str, output_path: Path) -> 
     xlabel = "Complexity"
     title_mod = "Complexity"
 
-    if method == "Strand":
+    if x_override is not None:
+        xlabel = f"Number of {x_override}"
+        title_mod = f"{x_override} Count"
+        if x_override == "Resolution":
+            title_mod = x_override
+    elif method == "Strand":
         xlabel = "Number of Curves (thousands)"
         title_mod = "Curve Count"
     elif method == "Shell":
@@ -92,7 +123,15 @@ def plot_data(df: pd.DataFrame, metric: str, ylabel: str, output_path: Path) -> 
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.title(f"{ylabel} vs {title_mod}")
+    plt.title(f"Mean {ylabel} vs {title_mod}")
+
+    if x_override == "Resolution":
+        plt.xticks(
+            range(len(RESOLUTION_ORDER)),
+            RESOLUTION_ORDER,
+            rotation=30,
+            ha="right",
+        )
 
     plt.tight_layout()
     plt.savefig(output_path)
@@ -126,12 +165,12 @@ def main() -> None:
         output_dir.mkdir(parents=True, exist_ok=True)
         plots_dir.mkdir(parents=True, exist_ok=True)
 
-        combined_df = load_aggregate_summaries(aggregate_dir)
+        combined_df, x_override = load_aggregate_summaries(aggregate_dir)
 
         save_csv(combined_df, output_dir / "CombinedSummary.csv")
 
         for metric, ylabel, filename in METRICS:
-            plot_data(combined_df, metric, ylabel, plots_dir / filename)
+            plot_data(combined_df, metric, ylabel, plots_dir / filename, x_override)
 
     print("\nComplete")
 
