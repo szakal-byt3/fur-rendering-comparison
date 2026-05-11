@@ -4,11 +4,13 @@
 
 Rendering fur has been an ongoing challenge in computer graphics, especially in real-time rendering where efficiency is important. Two broad approaches have emerged -- implicit and explciit rendering. In explicit rendering methods, fur geometry is created per strand of fur. In contrast, implicit methods seek to create the illusion of many strands without explicitly rendering strand geometry. This project uses Unreal Engine's Groom system as a way to create explicit, strand-based fur and a Material-based approach to create implicit, shell-based fur. These are then tested in an attempt to evaluate the scalability of each approach. 
 
-This project implements shell fur via an ActorComponent C++ class and custom Material nodes. The C++ code performs duplication of the Actor's base static mesh. Material nodes handle normal-based extrusion via world position offset (WPO) and provide custom emissive lighting based off the equation described in the paper *Real-Time Fur over Arbitrary Surfaces* by Lengyel et al. There are two variants of the shell fur implementation -- a naive solution which creates and attaches new static meshes to the Actor and a solution which uses an instanced static mesh instead. These implementations are limited to supporting static meshes only, do not support multiple lights, and do not attempt to generate fin geometry.
+This project implements shell fur via an ActorComponent C++ class and custom Material nodes. The C++ code performs duplication of the Actor's base static mesh. Material nodes handle normal-based extrusion via world position offset (WPO) and provide custom emissive lighting based off the equation described in the paper _Real-Time Fur over Arbitrary Surfaces_ by Lengyel et al. There are two variants of the shell fur implementation -- a naive solution which creates and attaches new static meshes to the Actor and a solution which uses an instanced static mesh instead. These implementations are limited to supporting static meshes only, do not support multiple lights, and do not attempt to generate fin geometry.
 
 Unreal's Groom pipeline is used as is. Groom assets and models were created with Blender. Performance metrics for tests are captured with Unreal's CSV Profiler tool, activated through level Blueprints.
 
-![Example of shell fur (left) and strand fur (right) applied to Blender's Suzanne model](Paper/Figures/Showcase/ExampleMonke.png)
+![An image showing shell fur (left) and strand fur (right) on Blender's Suzanne model](Paper/Figures/Showcase/ExampleMonke.png)
+
+_Shell fur results (left) and Groom results (right) applied to Blender's Suzanne model_
 
 ___
 
